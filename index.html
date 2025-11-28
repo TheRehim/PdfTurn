@@ -47,6 +47,7 @@
 
         #book {
             background: #fff;
+            position: relative;
         }
 
         #book .page {
@@ -54,6 +55,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
         #book .page canvas {
@@ -68,6 +70,76 @@
 
         #book .odd {
             background: linear-gradient(to right, #f5f5f5 0%, #fff 5%);
+        }
+
+        /* Grab zones */
+        .grab-zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100px;
+            z-index: 100;
+            cursor: default;
+            pointer-events: auto;
+        }
+
+        .grab-zone-left {
+            left: 0;
+        }
+
+        .grab-zone-right {
+            right: 0;
+        }
+
+        .grab-zone-left:hover,
+        .grab-zone-right:hover {
+            cursor: grab;
+        }
+
+        .grab-zone-left:active,
+        .grab-zone-right:active {
+            cursor: grabbing;
+        }
+
+        /* Corner hints */
+        .grab-zone::before,
+        .grab-zone::after {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .grab-zone-left::before {
+            top: 0;
+            left: 0;
+            background: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 50%, transparent 50%);
+        }
+
+        .grab-zone-left::after {
+            bottom: 0;
+            left: 0;
+            background: linear-gradient(-45deg, rgba(255, 255, 255, 0.15) 50%, transparent 50%);
+        }
+
+        .grab-zone-right::before {
+            top: 0;
+            right: 0;
+            background: linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.15) 50%);
+        }
+
+        .grab-zone-right::after {
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.15) 50%);
+        }
+
+        .grab-zone:hover::before,
+        .grab-zone:hover::after {
+            opacity: 1;
         }
 
         #controls {
@@ -185,6 +257,41 @@
             #viewer-container {
                 padding: 10px;
             }
+
+            .grab-zone {
+                width: 80px;
+            }
+
+            .grab-zone::before,
+            .grab-zone::after {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .control-group {
+                gap: 4px;
+            }
+
+            button {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .icon-btn {
+                padding: 6px 10px;
+                font-size: 14px;
+            }
+
+            #page-jump {
+                width: 50px;
+                padding: 6px 8px;
+            }
+
+            .grab-zone {
+                width: 60px;
+            }
         }
     </style>
 </head>
@@ -241,8 +348,6 @@
         let totalPages = 0;
         let currentScale = 1.0;
         let turnInitialized = false;
-        let renderQueue = [];
-        let isRendering = false;
 
         const loading = document.getElementById("loading");
         const bookElement = document.getElementById("book");
@@ -273,6 +378,7 @@
                 await renderPagesInRange(1, Math.min(4, totalPages));
 
                 initializeTurn();
+                setupGrabZones();
                 loading.classList.add("hidden");
                 updateControls();
             } catch (err) {
@@ -293,6 +399,7 @@
                 acceleration: true,
                 elevation: 50,
                 duration: 800,
+                display: 'double',
                 when: {
                     turning: function (event, page, view) {
                         const range = $(this).turn("range", page);
@@ -302,12 +409,128 @@
                         updatePageInfo();
                         updateControls();
                         pageJump.value = page;
+                        updateGrabZones();
+                    },
+                    start: function(event, pageObject, corner) {
+                        // This fires when page turn animation starts
                     }
                 }
             });
 
             turnInitialized = true;
             updatePageInfo();
+        }
+
+        function setupGrabZones() {
+            const leftZone = document.createElement('div');
+            leftZone.className = 'grab-zone grab-zone-left';
+            
+            const rightZone = document.createElement('div');
+            rightZone.className = 'grab-zone grab-zone-right';
+            
+            bookWrapper.appendChild(leftZone);
+            bookWrapper.appendChild(rightZone);
+
+            let isDragging = false;
+            let dragStartX = 0;
+            let dragStartY = 0;
+            let activeCorner = null;
+
+            function getCornerFromPosition(x, y, zone) {
+                const rect = bookWrapper.getBoundingClientRect();
+                const relY = y - rect.top;
+                const height = rect.height;
+                
+                if (zone === 'left') {
+                    return relY < height / 2 ? 'tl' : 'bl';
+                } else {
+                    return relY < height / 2 ? 'tr' : 'br';
+                }
+            }
+
+            function handleZoneMouseDown(e, zone) {
+                if (!turnInitialized) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                isDragging = true;
+                dragStartX = e.clientX || e.touches[0].clientX;
+                dragStartY = e.clientY || e.touches[0].clientY;
+                
+                activeCorner = getCornerFromPosition(dragStartY, dragStartY, zone);
+                
+                // Start the turn.js drag on the appropriate corner
+                const rect = bookWrapper.getBoundingClientRect();
+                const x = dragStartX - rect.left;
+                const y = dragStartY - rect.top;
+                
+                // Trigger turn.js corner grab
+                $(bookElement).turn('corner').call(bookElement, activeCorner);
+            }
+
+            function handleMouseMove(e) {
+                if (!isDragging || !activeCorner) return;
+                
+                e.preventDefault();
+                
+                const currentX = e.clientX || e.touches[0].clientX;
+                const currentY = e.clientY || e.touches[0].clientY;
+                
+                const rect = bookWrapper.getBoundingClientRect();
+                const x = currentX - rect.left;
+                const y = currentY - rect.top;
+                
+                // Let turn.js handle the drag for live page curl
+                const event = {
+                    type: 'mousemove',
+                    pageX: currentX,
+                    pageY: currentY
+                };
+            }
+
+            function handleMouseUp(e) {
+                if (!isDragging) return;
+                
+                isDragging = false;
+                
+                const endX = e.clientX || e.changedTouches[0].clientX;
+                const deltaX = endX - dragStartX;
+                
+                // Determine if we should flip based on drag distance
+                if (Math.abs(deltaX) > 50) {
+                    if (activeCorner === 'tl' || activeCorner === 'bl') {
+                        if (deltaX > 0) previousPage();
+                    } else {
+                        if (deltaX < 0) nextPage();
+                    }
+                }
+                
+                activeCorner = null;
+            }
+
+            leftZone.addEventListener('mousedown', (e) => handleZoneMouseDown(e, 'left'));
+            rightZone.addEventListener('mousedown', (e) => handleZoneMouseDown(e, 'right'));
+            leftZone.addEventListener('touchstart', (e) => handleZoneMouseDown(e, 'left'));
+            rightZone.addEventListener('touchstart', (e) => handleZoneMouseDown(e, 'right'));
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('touchmove', handleMouseMove, { passive: false });
+            document.addEventListener('mouseup', handleMouseUp);
+            document.addEventListener('touchend', handleMouseUp);
+        }
+
+        function updateGrabZones() {
+            const currentPage = $(bookElement).turn("page");
+            const leftZone = document.querySelector('.grab-zone-left');
+            const rightZone = document.querySelector('.grab-zone-right');
+            
+            if (leftZone && rightZone) {
+                // Hide left zone on first page
+                leftZone.style.display = currentPage <= 1 ? 'none' : 'block';
+                // Hide right zone on last page
+                rightZone.style.display = currentPage >= totalPages ? 'none' : 'block';
+            }
         }
 
         async function renderPagesInRange(start, end) {
@@ -369,6 +592,8 @@
 
             document.getElementById("zoom-out").disabled = currentScale <= MIN_SCALE;
             document.getElementById("zoom-in").disabled = currentScale >= MAX_SCALE;
+            
+            updateGrabZones();
         }
 
         function previousPage() {
@@ -413,17 +638,16 @@
                 $(bookElement).turn("size", newWidth, newHeight);
             }
 
-            // Force re-render at the new scale
             bookElement.querySelectorAll("canvas").forEach(canvas => {
                 canvas.removeAttribute("data-rendered");
             });
 
-            // Re-render a window around the current page for performance
             const start = Math.max(1, currentPage - 2);
             const end = Math.min(totalPages, currentPage + 2);
             await renderPagesInRange(start, end);
-        }
 
+            updateControls();
+        }
 
         function zoomIn() {
             const newScale = Math.min(currentScale * 1.2, MAX_SCALE);
