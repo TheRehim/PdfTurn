@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>DearFlip Demo – Tracemonkey Paper</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" id="wp-block-library-css" href="https://js.dearflip.com/wp-includes/css/dist/block-library/style.min.css?ver=6.8.3" media="all">
+    <link rel="stylesheet" id="dearblog-style-css" href="https://js.dearflip.com/wp-content/themes/dearblog-develop/style.css?ver=1.0.2" media="all">
+    <link rel="stylesheet" id="dflip-style-css" href="https://js.dearflip.com/wp-content/plugins/dflip/assets/css/dflip.min.css?ver=2.3.58" media="all">
+    
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #111827;
+            color: #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 12px 20px;
+            border-bottom: 1px solid #374151;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .tagline {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 16px;
+            box-sizing: border-box;
+        }
+
+        .flipbook-wrapper {
+            width: 100%;
+            max-width: 1200px;
+            height: 80vh;
+            margin: 0 auto;
+        }
+
+        ._df_book {
+            width: 100%;
+            height: 100%;
+        }
+
+        footer {
+            font-size: 11px;
+            padding: 8px 16px;
+            border-top: 1px solid #374151;
+            text-align: right;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <div class="flipbook-wrapper">
+            <div id="tm_flipbook" class="_df_book" source="compressed.tracemonkey-pldi-09.pdf">
+            </div>
+        </div>
+    </main>
+
+    <script src="https://js.dearflip.com/wp-includes/js/imagesloaded.min.js?ver=5.0.0" id="imagesloaded-js"></script>
+    <script src="https://js.dearflip.com/wp-includes/js/masonry.min.js?ver=4.2.2" id="masonry-js"></script>
+    <script
+        src="https://js.dearflip.com/wp-content/plugins/betterdocs/assets/blocks/categorygrid/frontend.js?ver=a4a7e7ed1fd9a2aaf85a"
+        id="betterdocs-categorygrid-js"></script>
+    <script src="https://js.dearflip.com/wp-content/themes/dearblog-develop/assets/js/main.js?ver=1.0.2"
+        id="dearblog-main-js"></script>
+    <script src="https://js.dearflip.com/wp-content/plugins/dflip/assets/js/dflip.min.js?ver=2.3.58"
+        id="dflip-script-js"></script>
+
+    <script>
+        var option_tm_flipbook = {
+            webgl: true,
+            height: "auto",
+            pageMode: "auto",
+            backgroundColor: "#111827",
+            maxTextureSize: 3200
+        };
+    </script>
+</body>
+
+</html>
